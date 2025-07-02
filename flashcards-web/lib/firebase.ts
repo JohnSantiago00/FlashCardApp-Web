@@ -3,12 +3,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyCt4VGKIeL3Kn5RuORFIG6GXbAGmO1RYRI",
+  authDomain: "flashcardapp-web.firebaseapp.com",
+  projectId: "flashcardapp-web",
+  storageBucket: "flashcardapp-web.appspot.com",
+  messagingSenderId: "746093899805",
+  appId: "1:746093899805:web:ea28b56bbf8b06719116f4",
+  measurementId: "G-CBHBSLRWFV",
 };
 
 const app = initializeApp(firebaseConfig);
