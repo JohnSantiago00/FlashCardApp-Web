@@ -8,7 +8,10 @@ export default function BulkImportPage() {
   const [bulkText, setBulkText] = useState("");
   const [error, setError] = useState("");
 
-  const parseFlashcards = (text: string) => {
+  // ✅ Safely parses and filters valid Q/A blocks
+  const parseFlashcards = (
+    text: string
+  ): { question: string; answer: string }[] => {
     const entries = text
       .trim()
       .split(/\n\s*\n/)
@@ -22,7 +25,7 @@ export default function BulkImportPage() {
           answer: answerMatch[1].trim(),
         };
       })
-      .filter(Boolean);
+      .filter(Boolean) as { question: string; answer: string }[];
 
     return entries;
   };
