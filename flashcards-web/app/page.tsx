@@ -37,7 +37,7 @@ export default function HomePage() {
             fontWeight: "bold",
           }}
         >
-          📋 View Your Flashcards
+          📋 View Your Decks
         </a>
 
         <a
@@ -51,7 +51,7 @@ export default function HomePage() {
             fontWeight: "bold",
           }}
         >
-          ➕ Add a New Flashcard
+          ➕ Create New Deck
         </a>
 
         <a

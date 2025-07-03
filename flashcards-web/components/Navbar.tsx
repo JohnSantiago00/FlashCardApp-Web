@@ -19,8 +19,8 @@ export default function Navbar() {
       }}
     >
       <Link href="/">🏠 Home</Link>
-      <Link href="/Add">➕ Add Card</Link>
-      <Link href="/Cards">📋 View Cards</Link>
+      <Link href="/Add">➕ Create New Deck</Link>
+      <Link href="/Cards">📋 View Decks</Link>
       <Link href="/Study">🎯 Study</Link>
       <Link href="/Import">📥 Import</Link>
     </nav>

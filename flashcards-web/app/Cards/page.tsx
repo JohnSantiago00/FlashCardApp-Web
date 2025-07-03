@@ -1,127 +1,55 @@
 "use client";
 
-import React, { useState } from "react";
-import EditCardModal from "../../components/modals/EditCardModal"; // ✅ Clean import
-import { useFlashcardContext } from "../../context/FlashcardContext";
+import { useFlashcardContext } from "@/context/FlashcardContext";
+import Link from "next/link";
+import React from "react";
 
-export default function FlashcardListPage() {
-  const { cards, deleteCard, updateCard } = useFlashcardContext();
-
-  const [editingCard, setEditingCard] = useState<null | {
-    id: string;
-    question: string;
-    answer: string;
-  }>(null);
-
-  const [editQuestion, setEditQuestion] = useState("");
-  const [editAnswer, setEditAnswer] = useState("");
-
-  const startEdit = (card: {
-    id: string;
-    question: string;
-    answer: string;
-  }) => {
-    setEditingCard(card);
-    setEditQuestion(card.question);
-    setEditAnswer(card.answer);
-  };
-
-  const handleEditSave = async () => {
-    if (!editQuestion.trim() || !editAnswer.trim()) return;
-
-    await updateCard(editingCard!.id, {
-      question: editQuestion,
-      answer: editAnswer,
-    });
-
-    setEditingCard(null);
-  };
+export default function DecksPage() {
+  const { decks } = useFlashcardContext();
 
   return (
-    <div
-      style={{
-        padding: "1.5rem",
-        maxWidth: "800px",
-        margin: "0 auto",
-        backgroundColor: "#fdfdfc",
-        borderRadius: "12px",
-      }}
-    >
-      <h1
-        style={{ fontSize: "2rem", marginBottom: "1rem", textAlign: "center" }}
-      >
-        📋 Your Flashcards
-      </h1>
+    <div className="container">
+      <h1 className="page-title">📚 Your Decks</h1>
 
-      {cards.length === 0 ? (
-        <p style={{ textAlign: "center" }}>
-          You haven’t added any flashcards yet.
-        </p>
+      {decks.length === 0 ? (
+        <p>You haven't created any decks yet.</p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {cards.map((card) => (
-            <li
-              key={card.id}
-              style={{
-                backgroundColor: "#fff",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                borderRadius: "10px",
-                padding: "1rem",
-                marginBottom: "1rem",
-              }}
-            >
-              <p>
-                <strong>Q:</strong> {card.question}
-              </p>
-              <p>
-                <strong>A:</strong> {card.answer}
-              </p>
-              <div
-                style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}
-              >
-                <button
-                  onClick={() => startEdit(card)}
-                  style={{
-                    padding: "0.5rem 0.75rem",
-                    backgroundColor: "#5C67F2",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  ✏️ Edit
-                </button>
-                <button
-                  onClick={() => deleteCard(card.id)}
-                  style={{
-                    padding: "0.5rem 0.75rem",
-                    backgroundColor: "#F25C5C",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  🗑️ Delete
-                </button>
-              </div>
+        <ul className="deck-list">
+          {decks.map((deck) => (
+            <li key={deck.id} className="deck-card">
+              <Link href={`/Cards/${deck.id}`}>📁 {deck.name}</Link>
             </li>
           ))}
         </ul>
       )}
 
-      {/* 🧱 Modal is now a clean separate component */}
-      {editingCard && (
-        <EditCardModal
-          question={editQuestion}
-          answer={editAnswer}
-          onCancel={() => setEditingCard(null)}
-          onSave={handleEditSave}
-          setQuestion={setEditQuestion}
-          setAnswer={setEditAnswer}
-        />
-      )}
+      <style jsx>{`
+        .container {
+          padding: 2rem;
+          max-width: 600px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .page-title {
+          font-size: 2rem;
+          margin-bottom: 1rem;
+        }
+        .deck-list {
+          list-style: none;
+          padding: 0;
+        }
+        .deck-card {
+          background: #f5f5f5;
+          padding: 1rem;
+          margin: 0.5rem 0;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.3s;
+        }
+        .deck-card:hover {
+          background: #e0e0e0;
+        }
+      `}</style>
     </div>
   );
 }

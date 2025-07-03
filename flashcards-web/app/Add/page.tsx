@@ -1,28 +1,74 @@
 "use client";
 
-import Spinner from "@/components/loaders/Spinner"; // 🌀 import spinner
+import Spinner from "@/components/loaders/Spinner";
+import { db } from "@/lib/firebase";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { useFlashcardContext } from "../../context/FlashcardContext";
+import React, { useEffect, useState } from "react";
 
 export default function AddFlashcardPage() {
-  const { addCard } = useFlashcardContext();
   const router = useRouter();
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [loading, setLoading] = useState(false); // 🌀 loading state
+  const [deckId, setDeckId] = useState("");
+  const [newDeckName, setNewDeckName] = useState("");
+  const [decks, setDecks] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ Fetch existing decks on mount
+  useEffect(() => {
+    const fetchDecks = async () => {
+      const snapshot = await getDocs(collection(db, "decks"));
+      const allDecks = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+      }));
+      setDecks(allDecks);
+    };
+    fetchDecks();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || !answer.trim()) return;
 
-    setLoading(true); // 🌀 show spinner
+    setLoading(true);
 
-    await addCard({ question, answer });
-    setLoading(false);
+    let finalDeckId = deckId;
+
+    // If creating a new deck
+    if (newDeckName.trim()) {
+      const deckRef = await addDoc(collection(db, "decks"), {
+        name: newDeckName.trim(),
+        createdAt: serverTimestamp(),
+      });
+      finalDeckId = deckRef.id;
+    }
+
+    if (!finalDeckId) {
+      alert("Please select or create a deck.");
+      setLoading(false);
+      return;
+    }
+
+    // Add card to the deck's cards subcollection
+    await addDoc(collection(db, "decks", finalDeckId, "flashcards"), {
+      question,
+      answer,
+      createdAt: serverTimestamp(),
+    });
+
     setQuestion("");
     setAnswer("");
+    setNewDeckName("");
+    setDeckId("");
+    setLoading(false);
     router.push("/Cards");
   };
 
@@ -47,14 +93,7 @@ export default function AddFlashcardPage() {
           maxWidth: "500px",
         }}
       >
-        <h1
-          style={{
-            fontSize: "1.8rem",
-            textAlign: "center",
-            color: "#333",
-            marginBottom: "1.5rem",
-          }}
-        >
+        <h1 style={{ fontSize: "1.8rem", textAlign: "center", color: "#333" }}>
           ➕ Add a Flashcard
         </h1>
 
@@ -63,12 +102,55 @@ export default function AddFlashcardPage() {
           style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
         >
           <label style={{ fontWeight: "bold", color: "#333" }}>
+            Select Existing Deck
+            <select
+              value={deckId}
+              onChange={(e) => setDeckId(e.target.value)}
+              disabled={!!newDeckName}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                fontSize: "1rem",
+                marginTop: "0.25rem",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+              }}
+            >
+              <option value="">-- Choose a deck --</option>
+              {decks.map((deck) => (
+                <option key={deck.id} value={deck.id}>
+                  {deck.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ fontWeight: "bold", color: "#333" }}>
+            Or Create New Deck
+            <input
+              type="text"
+              value={newDeckName}
+              onChange={(e) => setNewDeckName(e.target.value)}
+              placeholder="E.g. Full Stack"
+              disabled={!!deckId}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                fontSize: "1rem",
+                marginTop: "0.25rem",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+              }}
+            />
+          </label>
+
+          <label style={{ fontWeight: "bold", color: "#333" }}>
             Question
             <input
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="E.g. What is the capital of France?"
+              placeholder="E.g. What is a REST API?"
               style={{
                 width: "100%",
                 padding: "0.75rem",
@@ -86,7 +168,7 @@ export default function AddFlashcardPage() {
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="E.g. Paris"
+              placeholder="E.g. A stateless API architecture using HTTP"
               style={{
                 width: "100%",
                 padding: "0.75rem",
@@ -102,6 +184,7 @@ export default function AddFlashcardPage() {
 
           <button
             type="submit"
+            disabled={loading}
             style={{
               background: "#6C63FF",
               color: "#fff",
@@ -111,10 +194,8 @@ export default function AddFlashcardPage() {
               border: "none",
               borderRadius: "8px",
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "background 0.3s",
               opacity: loading ? 0.7 : 1,
             }}
-            disabled={loading}
           >
             {loading ? "Saving..." : "Save Flashcard"}
           </button>

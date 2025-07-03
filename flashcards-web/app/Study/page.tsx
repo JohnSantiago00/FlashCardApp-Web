@@ -13,26 +13,27 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 export default function StudyPage() {
-  const { cards } = useFlashcardContext();
+  const { cards, decks, currentDeck, setCurrentDeck } = useFlashcardContext();
 
   const [shuffledCards, setShuffledCards] = useState<typeof cards>([]);
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
 
-  // Load shuffle state from localStorage on first mount
+  // Load shuffle preference
   useEffect(() => {
     const saved = localStorage.getItem("shuffle");
     if (saved === "false") setShuffleEnabled(false);
   }, []);
 
-  // Shuffle cards when cards or shuffle preference changes
+  // Update shuffled cards when `cards` or `shuffle` changes
   useEffect(() => {
-    const updated = shuffleEnabled ? shuffleArray(cards) : cards;
-    setShuffledCards(updated);
+    if (!currentDeck) return;
+    const shuffled = shuffleEnabled ? shuffleArray(cards) : cards;
+    setShuffledCards(shuffled);
     setIndex(0);
     setShowAnswer(false);
-  }, [cards, shuffleEnabled]);
+  }, [cards, shuffleEnabled, currentDeck]);
 
   const handleNext = () => {
     if (shuffledCards.length > 0) {
@@ -53,53 +54,80 @@ export default function StudyPage() {
     setShowAnswer(false);
   };
 
-  if (shuffledCards.length === 0) {
-    return (
-      <div className="container">
-        <h1>🧠 Study Mode</h1>
-        <p>You haven’t added any flashcards yet.</p>
-      </div>
-    );
-  }
-
   const currentCard = shuffledCards[index];
 
   return (
     <div className="container">
       <h1 className="page-title">🧠 Study Mode</h1>
 
-      <div className="controls">
-        <label>
-          <input
-            type="checkbox"
-            checked={shuffleEnabled}
-            onChange={handleShuffleToggle}
-          />{" "}
-          Shuffle Mode
-        </label>
-        {shuffleEnabled && (
-          <button onClick={handleShuffleAgain} className="secondary-button">
-            🔀 Shuffle Again
+      {/* Deck Selector */}
+      {decks.length > 0 && (
+        <div className="deck-selector">
+          <label htmlFor="deck-select">📁 Choose a deck:</label>
+          <select
+            id="deck-select"
+            value={currentDeck?.id || ""}
+            onChange={(e) => {
+              const selected = decks.find((d) => d.id === e.target.value);
+              if (selected) {
+                setCurrentDeck(selected);
+              }
+            }}
+          >
+            <option value="" disabled>
+              -- Select a deck --
+            </option>
+            {decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {!currentDeck && <p>Please select a deck to begin studying.</p>}
+
+      {currentDeck && shuffledCards.length > 0 && (
+        <>
+          <div className="controls">
+            <label>
+              <input
+                type="checkbox"
+                checked={shuffleEnabled}
+                onChange={handleShuffleToggle}
+              />{" "}
+              Shuffle Mode
+            </label>
+            {shuffleEnabled && (
+              <button onClick={handleShuffleAgain} className="secondary-button">
+                🔀 Shuffle Again
+              </button>
+            )}
+          </div>
+
+          <div className="card" onClick={() => setShowAnswer((prev) => !prev)}>
+            <p className="card-text">
+              {showAnswer ? currentCard.answer : currentCard.question}
+            </p>
+            <small className="card-hint">
+              (Tap to see {showAnswer ? "question" : "answer"})
+            </small>
+          </div>
+
+          <button
+            onClick={handleNext}
+            className="primary-button"
+            disabled={shuffledCards.length <= 1}
+          >
+            {shuffledCards.length <= 1 ? "Only 1 card" : "Next ➡️"}
           </button>
-        )}
-      </div>
+        </>
+      )}
 
-      <div className="card" onClick={() => setShowAnswer((prev) => !prev)}>
-        <p className="card-text">
-          {showAnswer ? currentCard.answer : currentCard.question}
-        </p>
-        <small className="card-hint">
-          (Tap to see {showAnswer ? "question" : "answer"})
-        </small>
-      </div>
-
-      <button
-        onClick={handleNext}
-        className="primary-button"
-        disabled={shuffledCards.length <= 1}
-      >
-        {shuffledCards.length <= 1 ? "Only 1 card" : "Next ➡️"}
-      </button>
+      {currentDeck && shuffledCards.length === 0 && (
+        <p>This deck has no flashcards yet.</p>
+      )}
 
       <style jsx>{`
         .container {
@@ -111,6 +139,16 @@ export default function StudyPage() {
         .page-title {
           font-size: 2rem;
           margin-bottom: 1rem;
+        }
+        .deck-selector {
+          margin-bottom: 1.5rem;
+        }
+        .deck-selector select {
+          padding: 0.5rem;
+          font-size: 1rem;
+          margin-left: 0.5rem;
+          border-radius: 6px;
+          border: 1px solid #ccc;
         }
         .controls {
           display: flex;
