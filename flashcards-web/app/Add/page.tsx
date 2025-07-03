@@ -1,5 +1,6 @@
 "use client";
 
+import Spinner from "@/components/loaders/Spinner"; // 🌀 import spinner
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useFlashcardContext } from "../../context/FlashcardContext";
@@ -10,12 +11,16 @@ export default function AddFlashcardPage() {
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState(false); // 🌀 loading state
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || !answer.trim()) return;
 
+    setLoading(true); // 🌀 show spinner
+
     await addCard({ question, answer });
+    setLoading(false);
     setQuestion("");
     setAnswer("");
     router.push("/Cards");
@@ -24,7 +29,7 @@ export default function AddFlashcardPage() {
   return (
     <section
       style={{
-        background: "#f5f7ff", // light pastel background
+        background: "#f5f7ff",
         minHeight: "100vh",
         padding: "2rem 1rem",
         display: "flex",
@@ -72,6 +77,7 @@ export default function AddFlashcardPage() {
                 borderRadius: "8px",
                 border: "1px solid #ccc",
               }}
+              disabled={loading}
             />
           </label>
 
@@ -90,6 +96,7 @@ export default function AddFlashcardPage() {
                 borderRadius: "8px",
                 border: "1px solid #ccc",
               }}
+              disabled={loading}
             />
           </label>
 
@@ -103,19 +110,21 @@ export default function AddFlashcardPage() {
               fontWeight: "bold",
               border: "none",
               borderRadius: "8px",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               transition: "background 0.3s",
+              opacity: loading ? 0.7 : 1,
             }}
-            onMouseOver={(e) =>
-              ((e.target as HTMLButtonElement).style.background = "#594fe7")
-            }
-            onMouseOut={(e) =>
-              ((e.target as HTMLButtonElement).style.background = "#6C63FF")
-            }
+            disabled={loading}
           >
-            Save Flashcard
+            {loading ? "Saving..." : "Save Flashcard"}
           </button>
         </form>
+
+        {loading && (
+          <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
+            <Spinner />
+          </div>
+        )}
       </div>
     </section>
   );

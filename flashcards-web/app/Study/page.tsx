@@ -3,25 +3,57 @@
 import React, { useEffect, useState } from "react";
 import { useFlashcardContext } from "../../context/FlashcardContext";
 
+function shuffleArray<T>(array: T[]): T[] {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 export default function StudyPage() {
   const { cards } = useFlashcardContext();
 
+  const [shuffledCards, setShuffledCards] = useState<typeof cards>([]);
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [shuffleEnabled, setShuffleEnabled] = useState(true);
 
+  // Load shuffle state from localStorage on first mount
   useEffect(() => {
+    const saved = localStorage.getItem("shuffle");
+    if (saved === "false") setShuffleEnabled(false);
+  }, []);
+
+  // Shuffle cards when cards or shuffle preference changes
+  useEffect(() => {
+    const updated = shuffleEnabled ? shuffleArray(cards) : cards;
+    setShuffledCards(updated);
     setIndex(0);
     setShowAnswer(false);
-  }, [cards]);
+  }, [cards, shuffleEnabled]);
 
   const handleNext = () => {
-    if (cards.length > 0) {
-      setIndex((prev) => (prev + 1) % cards.length);
+    if (shuffledCards.length > 0) {
+      setIndex((prev) => (prev + 1) % shuffledCards.length);
       setShowAnswer(false);
     }
   };
 
-  if (cards.length === 0) {
+  const handleShuffleToggle = () => {
+    const newVal = !shuffleEnabled;
+    setShuffleEnabled(newVal);
+    localStorage.setItem("shuffle", String(newVal));
+  };
+
+  const handleShuffleAgain = () => {
+    setShuffledCards(shuffleArray(shuffledCards));
+    setIndex(0);
+    setShowAnswer(false);
+  };
+
+  if (shuffledCards.length === 0) {
     return (
       <div className="container">
         <h1>🧠 Study Mode</h1>
@@ -30,11 +62,27 @@ export default function StudyPage() {
     );
   }
 
-  const currentCard = cards[index];
+  const currentCard = shuffledCards[index];
 
   return (
     <div className="container">
       <h1 className="page-title">🧠 Study Mode</h1>
+
+      <div className="controls">
+        <label>
+          <input
+            type="checkbox"
+            checked={shuffleEnabled}
+            onChange={handleShuffleToggle}
+          />{" "}
+          Shuffle Mode
+        </label>
+        {shuffleEnabled && (
+          <button onClick={handleShuffleAgain} className="secondary-button">
+            🔀 Shuffle Again
+          </button>
+        )}
+      </div>
 
       <div className="card" onClick={() => setShowAnswer((prev) => !prev)}>
         <p className="card-text">
@@ -48,9 +96,9 @@ export default function StudyPage() {
       <button
         onClick={handleNext}
         className="primary-button"
-        disabled={cards.length <= 1}
+        disabled={shuffledCards.length <= 1}
       >
-        {cards.length <= 1 ? "Only 1 card" : "Next ➡️"}
+        {shuffledCards.length <= 1 ? "Only 1 card" : "Next ➡️"}
       </button>
 
       <style jsx>{`
@@ -62,6 +110,12 @@ export default function StudyPage() {
         }
         .page-title {
           font-size: 2rem;
+          margin-bottom: 1rem;
+        }
+        .controls {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
           margin-bottom: 1rem;
         }
         .card {
@@ -91,6 +145,15 @@ export default function StudyPage() {
           border-radius: 6px;
           cursor: pointer;
           font-size: 1rem;
+        }
+        .secondary-button {
+          background-color: #0288d1;
+          color: white;
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          cursor: pointer;
         }
         .primary-button:disabled {
           opacity: 0.6;

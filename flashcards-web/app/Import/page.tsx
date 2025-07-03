@@ -1,5 +1,6 @@
 "use client";
 
+import Spinner from "@/components/loaders/Spinner";
 import React, { useState } from "react";
 import { useFlashcardContext } from "../../context/FlashcardContext";
 
@@ -7,8 +8,8 @@ export default function BulkImportPage() {
   const { addCard } = useFlashcardContext();
   const [bulkText, setBulkText] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // 🌀 Loader state
 
-  // ✅ Safely parses and filters valid Q/A blocks
   const parseFlashcards = (
     text: string
   ): { question: string; answer: string }[] => {
@@ -40,11 +41,13 @@ export default function BulkImportPage() {
     }
 
     setError("");
+    setLoading(true); // ⏳ Show loader
 
     for (const card of cards) {
       await addCard(card);
     }
 
+    setLoading(false);
     alert(`✅ Successfully imported ${cards.length} flashcards!`);
     setBulkText("");
   };
@@ -71,11 +74,14 @@ export default function BulkImportPage() {
           value={bulkText}
           onChange={(e) => setBulkText(e.target.value)}
           className="bulk-textarea"
+          disabled={loading}
         />
 
-        <button type="submit" className="primary-button">
-          Import Flashcards
+        <button type="submit" className="primary-button" disabled={loading}>
+          {loading ? "Importing..." : "Import Flashcards"}
         </button>
+
+        {loading && <Spinner />}
       </form>
 
       <style jsx>{`
@@ -113,6 +119,26 @@ export default function BulkImportPage() {
           border-radius: 6px;
           font-size: 1rem;
           cursor: pointer;
+        }
+        .primary-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .spinner {
+          margin-top: 1rem;
+          width: 24px;
+          height: 24px;
+          border: 4px solid #ccc;
+          border-top: 4px solid #1976d2;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>
