@@ -5,8 +5,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  DocumentData,
-  getDocs,
   onSnapshot,
   updateDoc,
 } from "firebase/firestore";
@@ -19,61 +17,113 @@ import React, {
 } from "react";
 import { db } from "../lib/firebase";
 
-// Define what a flashcard looks like
+// Types
 export interface Flashcard {
   id: string;
   question: string;
   answer: string;
 }
 
-// What values will be provided to components
-interface FlashcardContextType {
-  cards: Flashcard[];
-  addCard: (card: Omit<Flashcard, "id">) => Promise<void>;
-  deleteCard: (id: string) => Promise<void>;
-  updateCard: (id: string, updated: Omit<Flashcard, "id">) => Promise<void>; // ✅ NEW
+export interface Deck {
+  id: string;
+  name: string;
 }
 
-// Create default context
+interface FlashcardContextType {
+  cards: Flashcard[];
+  decks: Deck[];
+  currentDeck: Deck | null;
+  setCurrentDeck: (deck: Deck) => void;
+  addDeck: (name: string) => Promise<void>;
+  addCard: (card: Omit<Flashcard, "id">) => Promise<void>;
+  deleteCard: (id: string) => Promise<void>;
+  updateCard: (id: string, updated: Omit<Flashcard, "id">) => Promise<void>;
+}
+
 const FlashcardContext = createContext<FlashcardContextType>({
   cards: [],
+  decks: [],
+  currentDeck: null,
+  setCurrentDeck: () => {},
+  addDeck: async () => {},
   addCard: async () => {},
   deleteCard: async () => {},
-  updateCard: async () => {}, // ✅ NEW
+  updateCard: async () => {},
 });
 
 export const useFlashcardContext = () => useContext(FlashcardContext);
 
 export const FlashcardProvider = ({ children }: { children: ReactNode }) => {
   const [cards, setCards] = useState<Flashcard[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
+  // Load decks
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "flashcards"), (snapshot) => {
-      const docs = snapshot.docs.map((doc) => ({
+    const unsub = onSnapshot(collection(db, "decks"), (snapshot) => {
+      const loaded = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...(doc.data() as DocumentData),
-      })) as Flashcard[];
-      setCards(docs);
+        ...(doc.data() as { name: string }),
+      }));
+      setDecks(loaded);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
+  // Load flashcards when a deck is selected
+  useEffect(() => {
+    if (!currentDeck) {
+      setCards([]);
+      return;
+    }
+
+    const ref = collection(db, "decks", currentDeck.id, "flashcards");
+    const unsub = onSnapshot(ref, (snapshot) => {
+      const loaded = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Flashcard, "id">),
+      }));
+      setCards(loaded);
+    });
+
+    return () => unsub();
+  }, [currentDeck]);
+
+  const addDeck = async (name: string) => {
+    await addDoc(collection(db, "decks"), { name });
+  };
+
   const addCard = async (card: Omit<Flashcard, "id">) => {
-    await addDoc(collection(db, "flashcards"), card);
+    if (!currentDeck) return;
+    await addDoc(collection(db, "decks", currentDeck.id, "flashcards"), card);
   };
 
   const deleteCard = async (id: string) => {
-    await deleteDoc(doc(db, "flashcards", id));
+    if (!currentDeck) return;
+    await deleteDoc(doc(db, "decks", currentDeck.id, "flashcards", id));
   };
 
   const updateCard = async (id: string, updated: Omit<Flashcard, "id">) => {
-    await updateDoc(doc(db, "flashcards", id), updated);
+    if (!currentDeck) return;
+    await updateDoc(
+      doc(db, "decks", currentDeck.id, "flashcards", id),
+      updated
+    );
   };
 
   return (
     <FlashcardContext.Provider
-      value={{ cards, addCard, deleteCard, updateCard }}
+      value={{
+        cards,
+        decks,
+        currentDeck,
+        setCurrentDeck,
+        addDeck,
+        addCard,
+        deleteCard,
+        updateCard,
+      }}
     >
       {children}
     </FlashcardContext.Provider>

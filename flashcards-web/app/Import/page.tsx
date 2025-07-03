@@ -1,34 +1,49 @@
 "use client";
 
 import Spinner from "@/components/loaders/Spinner";
-import React, { useState } from "react";
-import { useFlashcardContext } from "../../context/FlashcardContext";
+import { db } from "@/lib/firebase";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function BulkImportPage() {
-  const { addCard } = useFlashcardContext();
+  const router = useRouter();
+
   const [bulkText, setBulkText] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // 🌀 Loader state
+  const [loading, setLoading] = useState(false);
+  const [decks, setDecks] = useState<{ id: string; name: string }[]>([]);
+  const [deckId, setDeckId] = useState("");
+  const [newDeckName, setNewDeckName] = useState("");
 
-  const parseFlashcards = (
-    text: string
-  ): { question: string; answer: string }[] => {
-    const entries = text
+  useEffect(() => {
+    const fetchDecks = async () => {
+      const snapshot = await getDocs(collection(db, "decks"));
+      const loaded = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.data().name,
+      }));
+      setDecks(loaded);
+    };
+    fetchDecks();
+  }, []);
+
+  const parseFlashcards = (text: string) => {
+    return text
       .trim()
       .split(/\n\s*\n/)
       .map((block) => {
-        const questionMatch = block.match(/Q:\s*(.+)/i);
-        const answerMatch = block.match(/A:\s*(.+)/i);
-        if (!questionMatch || !answerMatch) return null;
-
-        return {
-          question: questionMatch[1].trim(),
-          answer: answerMatch[1].trim(),
-        };
+        const q = block.match(/Q:\s*(.+)/i);
+        const a = block.match(/A:\s*(.+)/i);
+        if (!q || !a) return null;
+        return { question: q[1].trim(), answer: a[1].trim() };
       })
       .filter(Boolean) as { question: string; answer: string }[];
-
-    return entries;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,103 +56,178 @@ export default function BulkImportPage() {
     }
 
     setError("");
-    setLoading(true); // ⏳ Show loader
+    setLoading(true);
+
+    let finalDeckId = deckId;
+
+    if (newDeckName.trim()) {
+      const newDeckRef = await addDoc(collection(db, "decks"), {
+        name: newDeckName.trim(),
+        createdAt: serverTimestamp(),
+      });
+      finalDeckId = newDeckRef.id;
+    }
+
+    if (!finalDeckId) {
+      setError("⚠️ Please select or create a deck.");
+      setLoading(false);
+      return;
+    }
 
     for (const card of cards) {
-      await addCard(card);
+      await addDoc(collection(db, "decks", finalDeckId, "flashcards"), {
+        ...card,
+        createdAt: serverTimestamp(),
+      });
     }
 
     setLoading(false);
-    alert(`✅ Successfully imported ${cards.length} flashcards!`);
+    alert(`✅ Successfully imported ${cards.length} cards!`);
     setBulkText("");
+    setDeckId("");
+    setNewDeckName("");
+    router.push(`/Cards/${finalDeckId}`);
   };
 
   return (
     <div className="container">
-      <h1 className="page-title">📥 Bulk Import Flashcards</h1>
+      <h1 className="title">📥 Import Decks</h1>
 
-      <p className="description">
-        Paste flashcards like this:
-        <br />
-        <code>Q: What is React?</code>
-        <br />
-        <code>A: A JS library for UIs</code>
-        <br />
-        (Each card separated by a blank line)
-      </p>
+      <form onSubmit={handleSubmit} className="form">
+        <div className="field">
+          <label className="label">Select Existing Deck</label>
+          <select
+            className="input"
+            value={deckId}
+            onChange={(e) => setDeckId(e.target.value)}
+            disabled={!!newDeckName}
+          >
+            <option value="">-- Choose a deck --</option>
+            {decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {error && <p className="error">{error}</p>}
+        <div className="field">
+          <label className="label">Or Create New Deck</label>
+          <input
+            className="input"
+            type="text"
+            placeholder="E.g. Backend Interview"
+            value={newDeckName}
+            onChange={(e) => setNewDeckName(e.target.value)}
+            disabled={!!deckId}
+          />
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <textarea
-          placeholder={`Q: What is React?\nA: A JavaScript library for building UIs\n\nQ: What is 2 + 2?\nA: 4`}
-          value={bulkText}
-          onChange={(e) => setBulkText(e.target.value)}
-          className="bulk-textarea"
-          disabled={loading}
-        />
+        <div className="field">
+          <label className="label">Paste Flashcards (Q/A Format)</label>
+          <textarea
+            className="textarea"
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={`Q: What is React?\nA: A JS library for UIs\n\nQ: What is 2 + 2?\nA: 4`}
+            disabled={loading}
+          />
+        </div>
 
-        <button type="submit" className="primary-button" disabled={loading}>
-          {loading ? "Importing..." : "Import Flashcards"}
+        {error && <p className="error">{error}</p>}
+
+        <button className="button" type="submit" disabled={loading}>
+          {loading ? "Importing..." : "Import Cards"}
         </button>
 
-        {loading && <Spinner />}
+        {loading && (
+          <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
+            <Spinner />
+          </div>
+        )}
       </form>
 
       <style jsx>{`
         .container {
-          padding: 2rem;
-          max-width: 600px;
+          padding: 2rem 1rem;
+          max-width: 700px;
           margin: 0 auto;
         }
-        .page-title {
+
+        .title {
+          text-align: center;
           font-size: 2rem;
-          margin-bottom: 1rem;
+          font-weight: 700;
+          margin-bottom: 2rem;
+          color: #333;
         }
-        .description {
-          font-size: 1rem;
-          margin-bottom: 1rem;
+
+        .form {
+          background: #fff;
+          padding: 2rem;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-        .error {
-          color: red;
-          font-weight: bold;
+
+        .field {
+          margin-bottom: 1.5rem;
         }
-        .bulk-textarea {
+
+        .label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: #444;
+        }
+
+        .input,
+        .textarea {
           width: 100%;
-          min-height: 200px;
-          padding: 1rem;
+          padding: 0.75rem 1rem;
           font-size: 1rem;
-          border-radius: 8px;
           border: 1px solid #ccc;
-          margin-bottom: 1rem;
+          border-radius: 8px;
         }
-        .primary-button {
+
+        .textarea {
+          min-height: 180px;
+          resize: vertical;
+        }
+
+        .button {
+          width: 100%;
           background-color: #1976d2;
           color: white;
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 6px;
+          padding: 0.85rem 1rem;
           font-size: 1rem;
+          font-weight: 600;
+          border: none;
+          border-radius: 8px;
           cursor: pointer;
         }
-        .primary-button:disabled {
+
+        .button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
-        .spinner {
-          margin-top: 1rem;
-          width: 24px;
-          height: 24px;
-          border: 4px solid #ccc;
-          border-top: 4px solid #1976d2;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-left: auto;
-          margin-right: auto;
+
+        .error {
+          color: red;
+          font-weight: bold;
+          margin-bottom: 1rem;
         }
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
+
+        @media (max-width: 480px) {
+          .form {
+            padding: 1.25rem;
+          }
+
+          .title {
+            font-size: 1.5rem;
+          }
+
+          .button {
+            font-size: 0.95rem;
           }
         }
       `}</style>
