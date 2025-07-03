@@ -1,5 +1,6 @@
 // app/page.tsx
 
+import Link from "next/link";
 export const metadata = {
   title: "Flashcards App",
 };
@@ -26,7 +27,7 @@ export default function HomePage() {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <a
+        <Link
           href="/Cards"
           style={{
             textDecoration: "none",
@@ -38,9 +39,9 @@ export default function HomePage() {
           }}
         >
           📋 View Your Decks
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/Add"
           style={{
             textDecoration: "none",
@@ -52,9 +53,9 @@ export default function HomePage() {
           }}
         >
           ➕ Create New Deck
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/Study"
           style={{
             textDecoration: "none",
@@ -66,9 +67,9 @@ export default function HomePage() {
           }}
         >
           🎯 Study Mode
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/Import"
           style={{
             textDecoration: "none",
@@ -80,7 +81,7 @@ export default function HomePage() {
           }}
         >
           📥 Bulk Import
-        </a>
+        </Link>
       </div>
     </section>
   );

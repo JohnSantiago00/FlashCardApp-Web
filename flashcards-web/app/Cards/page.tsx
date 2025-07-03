@@ -12,7 +12,7 @@ export default function DecksPage() {
       <h1 className="page-title">📚 Your Decks</h1>
 
       {decks.length === 0 ? (
-        <p>You haven't created any decks yet.</p>
+        <p>You haven&apos;t created any decks yet.</p>
       ) : (
         <ul className="deck-list">
           {decks.map((deck) => (
