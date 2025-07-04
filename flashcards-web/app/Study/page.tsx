@@ -14,19 +14,16 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function StudyPage() {
   const { cards, decks, currentDeck, setCurrentDeck } = useFlashcardContext();
-
   const [shuffledCards, setShuffledCards] = useState<typeof cards>([]);
   const [index, setIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [shuffleEnabled, setShuffleEnabled] = useState(true);
 
-  // Load shuffle preference
   useEffect(() => {
     const saved = localStorage.getItem("shuffle");
     if (saved === "false") setShuffleEnabled(false);
   }, []);
 
-  // Update shuffled cards when `cards` or `shuffle` changes
   useEffect(() => {
     if (!currentDeck) return;
     const shuffled = shuffleEnabled ? shuffleArray(cards) : cards;
@@ -38,6 +35,13 @@ export default function StudyPage() {
   const handleNext = () => {
     if (shuffledCards.length > 0) {
       setIndex((prev) => (prev + 1) % shuffledCards.length);
+      setShowAnswer(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (shuffledCards.length > 0) {
+      setIndex((prev) => (prev === 0 ? shuffledCards.length - 1 : prev - 1));
       setShowAnswer(false);
     }
   };
@@ -57,145 +61,153 @@ export default function StudyPage() {
   const currentCard = shuffledCards[index];
 
   return (
-    <div className="container">
-      <h1 className="page-title">🧠 Study Mode</h1>
+    <div className="study-wrapper">
+      <div className="overlay">
+        <h1 className="page-title">🎓 Study Mode</h1>
 
-      {/* Deck Selector */}
-      {decks.length > 0 && (
+        {/* Deck Selector */}
         <div className="deck-selector">
-          <label htmlFor="deck-select">📁 Choose a deck:</label>
-          <select
-            id="deck-select"
-            value={currentDeck?.id || ""}
-            onChange={(e) => {
-              const selected = decks.find((d) => d.id === e.target.value);
-              if (selected) {
-                setCurrentDeck(selected);
-              }
-            }}
-          >
-            <option value="" disabled>
-              -- Select a deck --
-            </option>
-            {decks.map((deck) => (
-              <option key={deck.id} value={deck.id}>
-                {deck.name}
-              </option>
-            ))}
-          </select>
+          <label>
+            📁 Choose a deck:
+            <select
+              value={currentDeck?.id || ""}
+              onChange={(e) => {
+                const selected = decks.find((d) => d.id === e.target.value);
+                if (selected) setCurrentDeck(selected);
+              }}
+            >
+              <option value="">-- Select a deck --</option>
+              {decks.map((deck) => (
+                <option key={deck.id} value={deck.id}>
+                  {deck.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-      )}
 
-      {!currentDeck && <p>Please select a deck to begin studying.</p>}
+        {!currentDeck && <p>Please select a deck to begin studying.</p>}
 
-      {currentDeck && shuffledCards.length > 0 && (
-        <>
-          <div className="controls">
-            <label>
-              <input
-                type="checkbox"
-                checked={shuffleEnabled}
-                onChange={handleShuffleToggle}
-              />{" "}
-              Shuffle Mode
-            </label>
-            {shuffleEnabled && (
-              <button onClick={handleShuffleAgain} className="secondary-button">
-                🔀 Shuffle Again
+        {currentDeck && shuffledCards.length > 0 && (
+          <>
+            <div
+              className="card-container"
+              onClick={() => setShowAnswer((prev) => !prev)}
+            >
+              <p className="card-text">
+                {showAnswer ? currentCard.answer : currentCard.question}
+              </p>
+              <small className="card-hint">
+                (Click card to show {showAnswer ? "question" : "answer"})
+              </small>
+            </div>
+
+            <div className="controls">
+              <button onClick={handleBack}>⬅️ Back</button>
+              <button onClick={handleNext} disabled={shuffledCards.length <= 1}>
+                ➡️ Next
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className="card" onClick={() => setShowAnswer((prev) => !prev)}>
-            <p className="card-text">
-              {showAnswer ? currentCard.answer : currentCard.question}
-            </p>
-            <small className="card-hint">
-              (Tap to see {showAnswer ? "question" : "answer"})
-            </small>
-          </div>
+            <div className="extras">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={shuffleEnabled}
+                  onChange={handleShuffleToggle}
+                />{" "}
+                Shuffle
+              </label>
+              {shuffleEnabled && (
+                <button onClick={handleShuffleAgain}>🔀 Shuffle Again</button>
+              )}
+            </div>
+          </>
+        )}
 
-          <button
-            onClick={handleNext}
-            className="primary-button"
-            disabled={shuffledCards.length <= 1}
-          >
-            {shuffledCards.length <= 1 ? "Only 1 card" : "Next ➡️"}
-          </button>
-        </>
-      )}
-
-      {currentDeck && shuffledCards.length === 0 && (
-        <p>This deck has no flashcards yet.</p>
-      )}
+        {currentDeck && shuffledCards.length === 0 && (
+          <p>This deck has no flashcards yet.</p>
+        )}
+      </div>
 
       <style jsx>{`
-        .container {
+        .study-wrapper {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #fff, #8ec5fc);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           padding: 2rem;
+        }
+        .overlay {
+          background: rgba(0, 0, 0, 0.65);
+          padding: 2rem;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 700px;
           text-align: center;
-          max-width: 500px;
-          margin: 0 auto;
         }
         .page-title {
-          font-size: 2rem;
+          font-size: 2.5rem;
           margin-bottom: 1rem;
         }
         .deck-selector {
           margin-bottom: 1.5rem;
         }
-        .deck-selector select {
+        select {
           padding: 0.5rem;
           font-size: 1rem;
-          margin-left: 0.5rem;
-          border-radius: 6px;
-          border: 1px solid #ccc;
+          border-radius: 8px;
+          border: none;
+        }
+        .card-container {
+          background: #fff;
+          color: #333;
+          border-radius: 12px;
+          padding: 2.5rem;
+          margin: 1rem 0;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+        }
+        .card-container:hover {
+          transform: scale(1.02);
+        }
+        .card-text {
+          font-size: 1.5rem;
+        }
+        .card-hint {
+          color: #888;
         }
         .controls {
           display: flex;
           justify-content: center;
           gap: 1rem;
-          margin-bottom: 1rem;
+          margin: 1rem 0;
         }
-        .card {
-          background: #fff3e0;
-          border: 2px solid #ffa726;
-          padding: 2rem;
-          border-radius: 12px;
-          margin-bottom: 1rem;
-          cursor: pointer;
-          transition: background 0.3s;
-        }
-        .card:hover {
-          background: #ffe0b2;
-        }
-        .card-text {
-          font-size: 1.25rem;
-          margin-bottom: 0.5rem;
-        }
-        .card-hint {
-          color: #888;
-        }
-        .primary-button {
-          background-color: #43a047;
+        .controls button {
+          background-color: #22c55e;
           color: white;
-          padding: 0.75rem 1.5rem;
+          padding: 0.6rem 1.2rem;
           border: none;
           border-radius: 6px;
-          cursor: pointer;
           font-size: 1rem;
+          cursor: pointer;
         }
-        .secondary-button {
-          background-color: #0288d1;
+        .extras {
+          margin-top: 1rem;
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          align-items: center;
+        }
+        .extras button {
+          background-color: #0ea5e9;
           color: white;
           padding: 0.5rem 1rem;
-          border: none;
           border-radius: 6px;
+          border: none;
           font-size: 0.9rem;
-          cursor: pointer;
-        }
-        .primary-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
         }
       `}</style>
     </div>
