@@ -61,153 +61,183 @@ export default function StudyPage() {
   const currentCard = shuffledCards[index];
 
   return (
-    <div className="study-wrapper">
-      <div className="overlay">
-        <h1 className="page-title">🎓 Study Mode</h1>
+    <div className="study-container">
+      <h1 className="page-title">🎓 Study Mode</h1>
 
-        {/* Deck Selector */}
-        <div className="deck-selector">
-          <label>
-            📁 Choose a deck:
-            <select
-              value={currentDeck?.id || ""}
-              onChange={(e) => {
-                const selected = decks.find((d) => d.id === e.target.value);
-                if (selected) setCurrentDeck(selected);
-              }}
-            >
-              <option value="">-- Select a deck --</option>
-              {decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {!currentDeck && <p>Please select a deck to begin studying.</p>}
-
-        {currentDeck && shuffledCards.length > 0 && (
-          <>
-            <div
-              className="card-container"
-              onClick={() => setShowAnswer((prev) => !prev)}
-            >
-              <p className="card-text">
-                {showAnswer ? currentCard.answer : currentCard.question}
-              </p>
-              <small className="card-hint">
-                (Click card to show {showAnswer ? "question" : "answer"})
-              </small>
-            </div>
-
-            <div className="controls">
-              <button onClick={handleBack}>⬅️ Back</button>
-              <button onClick={handleNext} disabled={shuffledCards.length <= 1}>
-                ➡️ Next
-              </button>
-            </div>
-
-            <div className="extras">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={shuffleEnabled}
-                  onChange={handleShuffleToggle}
-                />{" "}
-                Shuffle
-              </label>
-              {shuffleEnabled && (
-                <button onClick={handleShuffleAgain}>🔀 Shuffle Again</button>
-              )}
-            </div>
-          </>
-        )}
-
-        {currentDeck && shuffledCards.length === 0 && (
-          <p>This deck has no flashcards yet.</p>
-        )}
+      <div className="deck-select">
+        <label htmlFor="deck">Choose a Deck:</label>
+        <select
+          id="deck"
+          value={currentDeck?.id || ""}
+          onChange={(e) => {
+            const selected = decks.find((d) => d.id === e.target.value);
+            if (selected) setCurrentDeck(selected);
+          }}
+        >
+          <option value="">-- Select a deck --</option>
+          {decks.map((deck) => (
+            <option key={deck.id} value={deck.id}>
+              {deck.name}
+            </option>
+          ))}
+        </select>
       </div>
 
+      {!currentDeck && (
+        <p className="placeholder-text">Pick a deck to begin studying.</p>
+      )}
+
+      {currentDeck && shuffledCards.length > 0 && (
+        <>
+          <div className="card" onClick={() => setShowAnswer((prev) => !prev)}>
+            <p className="card-text">
+              {showAnswer ? currentCard.answer : currentCard.question}
+            </p>
+            <p className="hint-text">
+              (Tap to see {showAnswer ? "question" : "answer"})
+            </p>
+          </div>
+
+          <div className="nav-buttons">
+            <button onClick={handleBack}>⬅️ Back</button>
+            <button onClick={handleNext} disabled={shuffledCards.length <= 1}>
+              Next ➡️
+            </button>
+          </div>
+
+          <div className="options">
+            <label className="shuffle-toggle">
+              <input
+                type="checkbox"
+                checked={shuffleEnabled}
+                onChange={handleShuffleToggle}
+              />
+              Shuffle
+            </label>
+            {shuffleEnabled && (
+              <button className="shuffle-button" onClick={handleShuffleAgain}>
+                🔀 Shuffle Again
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {currentDeck && shuffledCards.length === 0 && (
+        <p className="placeholder-text">This deck has no flashcards yet.</p>
+      )}
+
       <style jsx>{`
-        .study-wrapper {
+        .study-container {
           min-height: 100vh;
-          background: linear-gradient(135deg, #fff, #8ec5fc);
+          background: linear-gradient(160deg, #5c67f2 10%, #a1c4fd 90%);
+          padding: 1rem;
           color: #fff;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: 2rem;
         }
-        .overlay {
-          background: rgba(0, 0, 0, 0.65);
-          padding: 2rem;
-          border-radius: 16px;
-          width: 100%;
-          max-width: 700px;
-          text-align: center;
-        }
+
         .page-title {
-          font-size: 2.5rem;
+          font-size: 2rem;
+          margin-top: 1rem;
           margin-bottom: 1rem;
         }
-        .deck-selector {
+
+        .deck-select {
           margin-bottom: 1.5rem;
+          text-align: center;
         }
+
         select {
-          padding: 0.5rem;
+          padding: 0.6rem;
           font-size: 1rem;
           border-radius: 8px;
           border: none;
+          margin-top: 0.5rem;
         }
-        .card-container {
-          background: #fff;
+
+        .card {
+          background: #ffffff;
           color: #333;
-          border-radius: 12px;
-          padding: 2.5rem;
-          margin: 1rem 0;
+          border-radius: 16px;
+          padding: 2rem;
+          width: 90%;
+          max-width: 500px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+          text-align: center;
+          margin-bottom: 1rem;
           cursor: pointer;
-          transition: transform 0.3s ease;
         }
-        .card-container:hover {
-          transform: scale(1.02);
-        }
+
         .card-text {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
+          line-height: 1.6;
         }
-        .card-hint {
-          color: #888;
+
+        .hint-text {
+          font-size: 0.85rem;
+          margin-top: 1rem;
+          color: #777;
         }
-        .controls {
+
+        .placeholder-text {
+          font-size: 1rem;
+          color: #eee;
+          margin-top: 2rem;
+        }
+
+        .nav-buttons {
           display: flex;
-          justify-content: center;
           gap: 1rem;
           margin: 1rem 0;
         }
-        .controls button {
-          background-color: #22c55e;
-          color: white;
-          padding: 0.6rem 1.2rem;
+
+        .nav-buttons button {
+          background: #22c55e;
           border: none;
-          border-radius: 6px;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
           font-size: 1rem;
           cursor: pointer;
         }
-        .extras {
-          margin-top: 1rem;
+
+        .options {
           display: flex;
+          align-items: center;
           justify-content: center;
           gap: 1rem;
-          align-items: center;
+          margin-top: 1rem;
+          flex-wrap: wrap;
         }
-        .extras button {
-          background-color: #0ea5e9;
+
+        .shuffle-toggle {
+          font-size: 1rem;
+        }
+
+        .shuffle-button {
+          background: #0ea5e9;
+          border: none;
           color: white;
           padding: 0.5rem 1rem;
-          border-radius: 6px;
-          border: none;
-          font-size: 0.9rem;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+          .card-text {
+            font-size: 1.1rem;
+          }
+          .page-title {
+            font-size: 1.6rem;
+          }
+          .nav-buttons button {
+            flex: 1;
+            font-size: 0.95rem;
+            padding: 0.5rem;
+          }
         }
       `}</style>
     </div>
